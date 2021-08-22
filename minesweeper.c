@@ -28,6 +28,8 @@
 
 // Add any extra #defines here.
 #define OUT_OF_BOUNDS 7
+#define OUT_OF_BOUNDS_RIGHT 8
+#define OUT_OF_BOUNDS_LEFT 0
 #define NOT_OUTSIDE 0
 #define OUTSIDE 1
 void initialise_field(int minefield[SIZE][SIZE]);
@@ -101,11 +103,11 @@ void check_mine_each_row(int row, int col,int length, int minefield[SIZE][SIZE])
 
 void check_mine_entire_square(int row, int col,int size,int minefield[SIZE][SIZE]) {
     int outside_minefield = NOT_OUTSIDE;
-    if (row > OUT_OF_BOUNDS || col > OUT_OF_BOUNDS) {
+    if (row > OUT_OF_BOUNDS_RIGHT || col > OUT_OF_BOUNDS_RIGHT || row < OUT_OF_BOUNDS_LEFT || col < OUT_OF_BOUNDS_LEFT) {
         printf("Coordinates not on map\n");
         outside_minefield = OUTSIDE;
-
     }
+
     if (outside_minefield == NOT_OUTSIDE) {
         int starting_row = row - size/2;
         int finishing_row = row + size/2;
@@ -118,10 +120,11 @@ void check_mine_entire_square(int row, int col,int size,int minefield[SIZE][SIZE
                 if (minefield[starting_row][starting_col] == HIDDEN_MINE) {
                     mine_count++;
                 }
-                starting_col++;
+                starting_col++; 
             }
             starting_row++;
         }
+        printf("There are %d mine(s) in the square centered at row %d, column %d of size %d\n", mine_count, row,col,size);
     }
     
 }
