@@ -1,10 +1,7 @@
-// Assignment 1 21T2 COMP1511: Minesweeper
+// Minesweeper game based on the Minesweeper game from Windows XP
 // minesweeper.c
 //
-// This program was written by YOUR-NAME-HERE (z5555555)
-// on INSERT-DATE-HERE
 //
-// Version 1.0.0 (2021-06-19): Assignment released.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,17 +25,22 @@
 
 // Add any extra #defines here.
 #define OUT_OF_BOUNDS 7
-#define OUT_OF_BOUNDS_RIGHT 8
+#define OUT_OF_BOUNDS_RIGHT 7
+#define OUT_OF_BOUNDS_DOWN 7
 #define OUT_OF_BOUNDS_LEFT 0
+#define OUT_OF_BOUNDS_UP 0
 #define NOT_OUTSIDE 0
 #define OUTSIDE 1
+#define CROSS_SIZE 3
+#define GAME_OVER 1
+#define NOT_GAME_OVER 0
+#define HINT_LIMIT 3
 void initialise_field(int minefield[SIZE][SIZE]);
 void print_debug_minefield(int minefield[SIZE][SIZE]);
 void set_hidden_mines(int minefield[SIZE][SIZE], int no_of_mines);
 void check_mine_each_row(int row, int col,int length, int minefield[SIZE][SIZE]);
-void check_mine_entire_square(int row, int col,int size,int minefield[SIZE][SIZE]);
-
-// Place your function prototyes here.
+int check_mine_entire_square(int row, int col,int size,int minefield[SIZE][SIZE]);
+int reveal_cross(int row, int col, int minefield[SIZE][SIZE]);
 
 int main(void) {
     int minefield[SIZE][SIZE];
@@ -49,30 +51,42 @@ int main(void) {
     printf("How many mines? ");
     scanf("%d",&no_of_mines);
 
-    // TODO: Scan in the number of pairs of mines.
-
     printf("Enter pairs:\n");
-
-    // TODO: Scan in the pairs of mines and place them on the grid.
     set_hidden_mines(minefield,no_of_mines);
 
     printf("Game Started\n");
     print_debug_minefield(minefield);
 
-
-    // TODO: Scan in commands to play the game until the game ends.
     // A game ends when the player wins, loses, or enters EOF (Ctrl+D).
-    // You should display the minefield after each command has been processed.
     int command = 0;
     int row = 0;
     int col = 0;
     int length = 0;
-
-    while(scanf("%d %d %d %d",&command,&row,&col,&length) != EOF) {
-        if (command == DETECT_ROW) {
+    int hints = 1;
+    //parses each command specific to each 
+    while(scanf("%d %d %d",&command,&row,&col) != EOF) {
+        int game_over_flag = NOT_GAME_OVER;
+        if (hints > HINT_LIMIT && (command == DETECT_ROW || command == DETECT_SQUARE )) {
+            printf("Help already used\n");
+        }
+        if (command == DETECT_ROW && hints <= HINT_LIMIT) {
+            scanf("%d", &length);
             check_mine_each_row(row,col,length,minefield);
-        } else if (command == DETECT_SQUARE) {
-            check_mine_entire_square(row,col,length,minefield);
+            hints++;
+        } else if (command == DETECT_SQUARE && hints <= HINT_LIMIT) {
+            scanf("%d", &length);
+            int mine_count = check_mine_entire_square(row,col,length,minefield);
+            printf("There are %d mine(s) in the square centered at row %d, column %d of size %d\n", mine_count, row,col,length);
+            hints++;
+        } else if (command == REVEAL_CROSS) {
+            game_over_flag = reveal_cross(row,col,minefield);
+        }
+        
+        if (game_over_flag == GAME_OVER) {
+
+            printf("Game over\n");
+            print_debug_minefield(minefield);
+            break;
         }
         print_debug_minefield(minefield);
     }
@@ -101,18 +115,17 @@ void check_mine_each_row(int row, int col,int length, int minefield[SIZE][SIZE])
     } 
 }
 
-void check_mine_entire_square(int row, int col,int size,int minefield[SIZE][SIZE]) {
+int check_mine_entire_square(int row, int col,int size,int minefield[SIZE][SIZE]) {
     int outside_minefield = NOT_OUTSIDE;
     if (row > OUT_OF_BOUNDS_RIGHT || col > OUT_OF_BOUNDS_RIGHT || row < OUT_OF_BOUNDS_LEFT || col < OUT_OF_BOUNDS_LEFT) {
         printf("Coordinates not on map\n");
         outside_minefield = OUTSIDE;
     }
-
+    int mine_count = 0;
     if (outside_minefield == NOT_OUTSIDE) {
         int starting_row = row - size/2;
         int finishing_row = row + size/2;
-        printf("starting row: %d finishing row: %d\n", starting_row, finishing_row);
-        int mine_count = 0;
+        
         while (starting_row <= finishing_row) {
             int starting_col = col - size/2;
             int finishing_col = col + size/2;
@@ -124,11 +137,46 @@ void check_mine_entire_square(int row, int col,int size,int minefield[SIZE][SIZE
             }
             starting_row++;
         }
-        printf("There are %d mine(s) in the square centered at row %d, column %d of size %d\n", mine_count, row,col,size);
+        
     }
-    
+    return mine_count;
 }
 
+//when inputting the coordinates, c
+int reveal_cross(int row, int col, int minefield[SIZE][SIZE]) { 
+    int game_over_flag = NOT_GAME_OVER;  
+    if (minefield[row][col] == HIDDEN_MINE) {
+        game_over_flag = GAME_OVER;
+        return game_over_flag;
+    }
+
+    if (row >= OUT_OF_BOUNDS_UP && row < OUT_OF_BOUNDS_DOWN) {
+        if (check_mine_entire_square(row+1,col,CROSS_SIZE,minefield) == 0) {
+            minefield[row+1][col] = VISIBLE_SAFE;
+        }
+    }
+
+    if (row > OUT_OF_BOUNDS_UP && row <= OUT_OF_BOUNDS_DOWN) {
+        if (check_mine_entire_square(row-1,col,CROSS_SIZE,minefield) == 0) {
+            minefield[row-1][col] = VISIBLE_SAFE;
+        }
+    }
+
+    if (col >= OUT_OF_BOUNDS_LEFT && col < OUT_OF_BOUNDS_RIGHT) {
+        if (check_mine_entire_square(row,col+1,CROSS_SIZE,minefield) == 0) {
+            minefield[row][col+1] = VISIBLE_SAFE;
+        }
+    }
+
+    if (col > OUT_OF_BOUNDS_LEFT && col <= OUT_OF_BOUNDS_RIGHT) {
+        if (check_mine_entire_square(row,col-1,CROSS_SIZE,minefield) == 0) {
+            minefield[row][col-1] = VISIBLE_SAFE;
+        } 
+    }    
+    minefield[row][col] = VISIBLE_SAFE;
+    return game_over_flag;
+}
+//set mines in the minefield
 void set_hidden_mines(int minefield[SIZE][SIZE], int no_of_mines) {
     int x = 0;
     int y = 0;
@@ -152,12 +200,31 @@ void initialise_field(int minefield[SIZE][SIZE]) {
     }
 }
 
-
 // Print out the actual values of the minefield.
 void print_debug_minefield(int minefield[SIZE][SIZE]) {
     int i = 0;
     while (i < SIZE) {
         int j = 0;
+        while (j < SIZE) {
+            printf("%d ", minefield[i][j]);
+            j++;
+        }
+        printf("\n");
+        i++;
+    }
+}
+
+void print_minefield(int minefield[SIZE][SIZE]) {
+    int num_col = 0;
+    while (num_col < size) {
+        printf("0%d ", num_col);
+    }
+    printf("\n");
+    printf("-------------------------\n");
+    int i = 0;
+    while (i < SIZE) {
+        int j = 0;
+        printf()
         while (j < SIZE) {
             printf("%d ", minefield[i][j]);
             j++;
