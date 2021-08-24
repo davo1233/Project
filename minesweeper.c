@@ -39,11 +39,12 @@
 #define GAMEPLAY 0
 void initialise_field(int minefield[SIZE][SIZE]);
 void print_debug_minefield(int minefield[SIZE][SIZE]);
-void print_minefield(int minefield[SIZE][SIZE],int game_over_flag);
+void print_minefield(int minefield[SIZE][SIZE]);
 void set_hidden_mines(int minefield[SIZE][SIZE], int no_of_mines);
 void check_mine_each_row(int row, int col,int length, int minefield[SIZE][SIZE]);
 int check_mine_entire_square(int row, int col,int size,int minefield[SIZE][SIZE]);
 int reveal_cross(int row, int col, int minefield[SIZE][SIZE]);
+void print_final_minefield(int minefield[SIZE][SIZE]);
 
 int main(void) {
     int minefield[SIZE][SIZE];
@@ -74,11 +75,11 @@ int main(void) {
         if (hints > HINT_LIMIT && (command == DETECT_ROW || command == DETECT_SQUARE)) {
             printf("Help already used\n");
         }
-        if (command == DETECT_ROW && hints <= HINT_LIMIT) {
+        if (command == DETECT_ROW) {
             scanf("%d %d %d", &row,&col,&length);
             check_mine_each_row(row,col,length,minefield);
             hints++;
-        } else if (command == DETECT_SQUARE && hints <= HINT_LIMIT) {
+        } else if (command == DETECT_SQUARE) {
             scanf("%d %d %d", &row,&col,&length);
             int mine_count = check_mine_entire_square(row,col,length,minefield);
             printf("There are %d mine(s) in the square centered at row %d, column %d of size %d\n", mine_count, row,col,length);
@@ -98,16 +99,18 @@ int main(void) {
 
         if (game_over_flag == GAME_OVER) {
             printf("Game over\n");
-            print_debug_minefield(minefield);
+            if (game_mode == DEBUG) {
+                print_debug_minefield(minefield);
+            } else if (game_mode == GAMEPLAY) {
+                print_final_minefield(minefield);
+            }
             break;
         }
 
         if (game_mode == DEBUG) {
             print_debug_minefield(minefield);
-            printf("printing debug minefield");
         } else if (game_mode == GAMEPLAY) {
-            print_minefield(minefield,game_over_flag);
-            printf("printing gameplay minefield\n");
+            print_minefield(minefield);
         }  
     }
     return 0;
@@ -233,14 +236,10 @@ void print_debug_minefield(int minefield[SIZE][SIZE]) {
     }
 }
 
-void print_minefield(int minefield[SIZE][SIZE], int game_over_flag) {
-    if (game_over_flag == GAME_OVER) {
-        printf("xx\n");
-        printf("/\\n");
-    } else {
-        printf("..\n");
-        printf("\\/\n");
-    }
+void print_minefield(int minefield[SIZE][SIZE]) {
+    printf("..\n");
+    printf("\\/\n");
+    
     int num_col = 0;
     printf("    ");
     while (num_col < SIZE) {
@@ -258,6 +257,44 @@ void print_minefield(int minefield[SIZE][SIZE], int game_over_flag) {
             if (minefield[i][j] == HIDDEN_MINE || minefield[i][j] == HIDDEN_SAFE) {
                 printf("##");
             } else if (num_of_mines > 0 && minefield[i][j] == VISIBLE_SAFE) {
+                printf("0%d",num_of_mines);
+            } else if (num_of_mines == 0 && minefield[i][j] == VISIBLE_SAFE) {
+                printf("  ");
+            }
+            
+            if (j < SIZE - 1) {
+                printf(" ");
+            } 
+            j++;
+        }
+        printf("|\n");
+        i++;
+    }
+}
+
+void print_final_minefield(int minefield[SIZE][SIZE]) {
+    printf("xx\n");
+    printf("/\\\n");
+
+    int num_col = 0;
+    printf("    ");
+    while (num_col < SIZE) {
+        printf("0%d ", num_col);
+        num_col++;
+    }
+    printf("\n");
+    printf("   -------------------------\n");
+    int i = 0;
+    while (i < SIZE) {
+        int j = 0;
+        printf("0%d |",i);
+        while (j < SIZE) {
+            int num_of_mines = check_mine_entire_square(i,j,CROSS_SIZE,minefield);
+            if (minefield[i][j] == HIDDEN_SAFE) {
+                printf("##");
+            } else if (minefield[i][j] == HIDDEN_MINE) {
+                printf("()");
+            }else if (num_of_mines > 0 && minefield[i][j] == VISIBLE_SAFE) {
                 printf("0%d",num_of_mines);
             } else if (num_of_mines == 0 && minefield[i][j] == VISIBLE_SAFE) {
                 printf("  ");
